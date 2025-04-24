@@ -6,120 +6,17 @@ from plotter3d import Planet3d, System3d
 
 def get_user_input3d():
     predefined_planets = {
-        "Mercury": Planet3d(
-            name="Mercury",
-            xPositions=[5.7e10],
-            yPositions=[0],
-            zPositions=[0],
-            color="silver",
-            radius=2.44e6
-        ),
-        "Venus": Planet3d(
-            name="Venus",
-            xPositions=[1.075e11],
-            yPositions=[0],
-            zPositions=[0],
-            color="yellow",
-            radius=6.052e6
-        ),
-        "Earth": Planet3d(
-            name="Earth",
-            xPositions=[1.471e11],
-            yPositions=[0],
-            zPositions=[0],
-            color="deepskyblue",
-            radius=6.371e6
-        ),
-        "Mars": Planet3d(
-            name="Mars",
-            xPositions=[2.066e11],
-            yPositions=[0],
-            zPositions=[0],
-            color="orangered",
-            radius=3.389e6
-        ),
-        "Jupiter": Planet3d(
-            name="Jupiter",
-            xPositions=[7.4052e11],
-            yPositions=[0],
-            zPositions=[0],
-            color="orange",
-            radius=6.9911e7
-        ),
-        "Saturn": Planet3d(
-            name="Saturn",
-            xPositions=[1.3526e12],
-            yPositions=[0],
-            zPositions=[0],
-            color="gold",
-            radius=5.8232e7
-        ),
-        "Uranus": Planet3d(
-            name="Uranus",
-            xPositions=[2.7413e12],
-            yPositions=[0],
-            zPositions=[0],
-            color="cyan",
-            radius=2.5362e7
-        ),
-        "Neptune": Planet3d(
-            name="Neptune",
-            xPositions=[4.4445e12],
-            yPositions=[0],
-            zPositions=[0],
-            color="dodgerblue",
-            radius=2.4622e7
-        ),
-        "Pluto": Planet3d(
-            name="Pluto",
-            xPositions=[4.4368e12],
-            yPositions=[0],
-            zPositions=[0],
-            color="sandybrown",
-            radius=1.1883e6
-        )
+        "Mercury": Planet3d("Mercury",[5.7e10],[0],[0],"silver",2.44e6),
+        "Venus":   Planet3d("Venus",[1.075e11],[0],[0],"yellow",6.052e6),
+        "Earth":   Planet3d("Earth",[1.471e11],[0],[0],"deepskyblue",6.371e6),
+        "Mars":    Planet3d("Mars",[2.066e11],[0],[0],"orangered",3.389e6),
+        "Jupiter": Planet3d("Jupiter",[7.4052e11],[0],[0],"orange",6.9911e7),
+        "Saturn":  Planet3d("Saturn",[1.3526e12],[0],[0],"gold",5.8232e7),
+        "Uranus":  Planet3d("Uranus",[2.7413e12],[0],[0],"cyan",2.5362e7),
+        "Neptune": Planet3d("Neptune",[4.4445e12],[0],[0],"dodgerblue",2.4622e7),
+        "Pluto":   Planet3d("Pluto",[4.4368e12],[0],[0],"sandybrown",1.1883e6)
     }
-
-    print("\nAvailable planets:")
-    for planet_name in predefined_planets.keys():
-        print(f"- {planet_name}")
-    
-    # let user select planets
-    selected_planets = []
-    
-    while True:
-        try:
-            num_planets = int(input("\nHow many planets would you like to include? "))
-            if num_planets < 1:
-                print("Please select at least one planet please")
-                continue
-            if num_planets > len(predefined_planets):
-                print(f"Maximum number of planets is {len(predefined_planets)}")
-                continue
-            break
-        except ValueError:
-            print("Please enter a valid number.")
-    
-    for i in range(num_planets):
-        while True:
-            print(f"\nSelect planet {i+1}:")
-            selection = input("Enter planet name: ").strip()
-            
-            # check if planit name exists (without case sensitivity)
-            planet_found = False
-            for planet_name in predefined_planets.keys():
-                if selection.lower() == planet_name.lower():
-                    selected_planets.append(predefined_planets[planet_name].copy())
-                    print(f"Added {planet_name} to simulation.")
-                    planet_found = True
-                    break
-            
-            if planet_found:
-                break
-            else:
-                print(f"Planet '{selection}' not found. Please enter a valid planet name.")
-    
-    return selected_planets
+    return list(predefined_planets.values())
 
 
 def get_user_input2d():
@@ -239,9 +136,12 @@ def get_user_input2d():
     
     return selected_planets, show_trails
 
-def simulate_orbits(system, show_trails=True, days=365, steps_per_day=24):
-    dt = 86400 / steps_per_day
-    
+def simulate_orbits(system, show_trails=True, days=365, steps_per_day=24, sub_steps=2000):
+
+    dt = 86400 / steps_per_day  
+    dt_calc = dt / sub_steps     
+    steps_per_frame = 5          
+
     fig, ax = plt.subplots(figsize=(10, 10))
     
     fig.patch.set_facecolor('black')
@@ -323,8 +223,9 @@ def simulate_orbits(system, show_trails=True, days=365, steps_per_day=24):
         return (lines + points) if show_trails else points
     
     def update(frame):
-        for _ in range(5):
-            system.step_forward(dt)
+        # Perform multiple smaller steps for accuracy within one visual update interval
+        for _ in range(steps_per_frame * sub_steps):
+            system.step_forward(dt_calc)
         
         host_point.set_data([system.host.position[0]], [system.host.position[1]])
         
@@ -345,7 +246,7 @@ def simulate_orbits(system, show_trails=True, days=365, steps_per_day=24):
     
     anim = animation.FuncAnimation(
         fig, update, init_func=init,
-        frames=days * steps_per_day // 5,
+        frames=days * steps_per_day // steps_per_frame, # Keep frames based on visual steps
         interval=20,
         blit=True,
         repeat=True 
@@ -365,19 +266,21 @@ def main():
 
     if mode == "2d":
         planet_data_list, show_trails = get_user_input2d()
-        sun_offset = -2e10
-        sun = Planet(name="Sun", mass=1.989e30, position=[sun_offset, 0], velocity=[0, 0])
+        sun = Planet(name="Sun", mass=1.989e30, position=[0, 0], velocity=[0, 0])
         
-        planets = []
+        G=6.67430e-11
+        planets=[]
         for planet_data in planet_data_list:
-            planet = Planet(
-                name=planet_data["name"],
-                mass=planet_data["mass"],
-                position=planet_data["position"],
-                velocity=planet_data["velocity"],
-                color=planet_data["color"]
-            )
-            planets.append(planet)
+            pos=planet_data["position"].copy()
+            r=math.hypot(pos[0],pos[1])
+            v=math.sqrt(G*sun.mass/r)
+
+            # if the velocity is negative, we need to flip the velocity (to make sure we go in the correct direction)
+            vel = [
+                0,
+                v if planet_data["velocity"][1] >= 0 else -v
+            ]
+            planets.append(Planet(planet_data["name"],planet_data["mass"],pos,vel,planet_data["color"]))
         
         solar_system = System(host=sun, planets=planets)
         fig, anim = simulate_orbits(solar_system, show_trails=show_trails)
@@ -385,8 +288,28 @@ def main():
         plt.show(block=True)
     
     elif mode == "3d":
-        planet_data_list = get_user_input3d()
-        system3d = System3d(planets=planet_data_list)
+        planet3d_list = get_user_input3d()
+
+        sun = Planet("Sun", 1.989e30, [0, 0, 0], [0, 0, 0])
+        G = 6.67430e-11
+        masses = {"Mercury":3.3011e23,"Venus":4.8675e24,"Earth":5.972e24,"Mars":6.4171e23,"Jupiter":1.8982e27,"Saturn":5.6834e26,"Uranus":8.6810e25,"Neptune":1.02413e26,"Pluto":1.303e22}
+        sim_planets = []
+
+        for p3d in planet3d_list:
+            x,y,z = p3d.xPositions[0], p3d.yPositions[0], p3d.zPositions[0]
+            r = math.sqrt(x*x + y*y + z*z)
+            v = math.sqrt(G * sun.mass / r)
+            vx,vy,vz = -y/r*v, x/r*v, 0
+            sim_planets.append(Planet(p3d.name, masses[p3d.name], [x,y,z], [vx,vy,vz], p3d.color))
+
+        system_sim = System(host=sun, planets=sim_planets, mode="3d")
+        days,steps_per_day,sub_steps = 365,24,10
+        dt = 86400/steps_per_day; dt_calc = dt/sub_steps; frames = days*steps_per_day
+        
+        for _ in range(frames):
+            for __ in range(sub_steps): system_sim.step_forward(dt_calc)
+            for i,p in enumerate(sim_planets): planet3d_list[i].xPositions.append(p.position[0]); planet3d_list[i].yPositions.append(p.position[1]); planet3d_list[i].zPositions.append(p.position[2])
+        system3d = System3d(planets=planet3d_list)
         system3d.animateSimulation()
 
 if __name__ == '__main__':
