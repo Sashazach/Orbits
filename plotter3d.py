@@ -5,7 +5,7 @@ import numpy as np
 import pyvista as pv
 
 
-class Planet:
+class Planet3d:
     def __init__(self, name: str, xPositions: list[float], yPositions: list[float], zPositions: list[float], color: str = 'blue', radius: float = 1):
         self.name = name
         self.xPositions = xPositions
@@ -35,8 +35,8 @@ class Planet:
 
         self.mesh.translate(dx, dy, dz, inplace=True)
 
-class System:
-    def __init__(self, planets: list[Planet]):
+class System3d  :
+    def __init__(self, planets: list[Planet3d]):
         self.planets = planets
         self.renderedPlanets = []
 
