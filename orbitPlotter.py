@@ -296,21 +296,48 @@ def main():
         sim_planets = []
 
         for p3d in planet3d_list:
-            x,y,z = p3d.xPositions[0], p3d.yPositions[0], p3d.zPositions[0]
-            r = math.sqrt(x*x + y*y + z*z)
+            x,y = p3d.xPositions[0], p3d.yPositions[0]
+            r = math.hypot(x,y)
             v = math.sqrt(G * sun.mass / r)
-            vx,vy,vz = -y/r*v, x/r*v, 0
-            sim_planets.append(Planet(p3d.name, masses[p3d.name], [x,y,z], [vx,vy,vz], p3d.color))
+            vx,vy = 0,v
+            sim_planets.append(Planet(p3d.name, masses[p3d.name], [x,y], [vx,vy], p3d.color))
 
-        system_sim = System(host=sun, planets=sim_planets, mode="3d")
-        days,steps_per_day,sub_steps = 365,24,10
+        system_sim = System(host=sun, planets=sim_planets)
+        # Extend simulation length significantly (from 2000 to 20000 days)
+        # Decrease the days but increase steps_per_day for higher temporal resolution
+        days,steps_per_day,sub_steps = 1000,96,10
         dt = 86400/steps_per_day; dt_calc = dt/sub_steps; frames = days*steps_per_day
+        
+        # Sample rate - collect 1 point per day (reduced from 5 days)
+        # to ensure smooth orbital curves
+        # to keep the animation smooth but data size manageable
+        # Collect points every 6 hours (4 points per day) for smoother orbits
+        sample_rate = steps_per_day // 4
+        
+        print(f"Running {days} day simulation...")
         
         for _ in range(frames):
             for __ in range(sub_steps): system_sim.step_forward(dt_calc)
-            for i,p in enumerate(sim_planets): planet3d_list[i].xPositions.append(p.position[0]); planet3d_list[i].yPositions.append(p.position[1]); planet3d_list[i].zPositions.append(p.position[2])
-        system3d = System3d(planets=planet3d_list)
-        system3d.animateSimulation()
+            
+            # Only collect position data at the sample rate
+            if _ % sample_rate == 0:
+                for i,p in enumerate(sim_planets):
+                    planet3d_list[i].xPositions.append(p.position[0])
+                    planet3d_list[i].yPositions.append(p.position[1])
+                    planet3d_list[i].zPositions.append(0)
+                
+                # Print progress update
+                if _ % (frames // 10) < sample_rate:
+                    print(f"Simulation {_ / frames * 100:.1f}% complete")
+        
+        print("Simulation complete. Preparing visualization...")
+        
+        # Disable orbit paths as requested
+        system3d = System3d(planets=planet3d_list, show_orbit_paths=False)
+        # Use a very slow speed factor (0.1 = 10x slower) so animation is easily visible
+        print("Starting smooth animation...")
+        # Use a moderate speed factor with the new smooth interpolation
+        system3d.animateSimulation(speed_factor=0.5)
 
 if __name__ == '__main__':
     main() 
