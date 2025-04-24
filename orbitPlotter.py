@@ -303,15 +303,10 @@ def main():
             sim_planets.append(Planet(p3d.name, masses[p3d.name], [x,y], [vx,vy], p3d.color))
 
         system_sim = System(host=sun, planets=sim_planets)
-        # Extend simulation length significantly (from 2000 to 20000 days)
-        # Decrease the days but increase steps_per_day for higher temporal resolution
-        days,steps_per_day,sub_steps = 1000,96,10
+
+        days,steps_per_day,sub_steps = 100,96,10
         dt = 86400/steps_per_day; dt_calc = dt/sub_steps; frames = days*steps_per_day
         
-        # Sample rate - collect 1 point per day (reduced from 5 days)
-        # to ensure smooth orbital curves
-        # to keep the animation smooth but data size manageable
-        # Collect points every 6 hours (4 points per day) for smoother orbits
         sample_rate = steps_per_day // 4
         
         print(f"Running {days} day simulation...")
@@ -319,7 +314,6 @@ def main():
         for _ in range(frames):
             for __ in range(sub_steps): system_sim.step_forward(dt_calc)
             
-            # Only collect position data at the sample rate
             if _ % sample_rate == 0:
                 for i,p in enumerate(sim_planets):
                     planet3d_list[i].xPositions.append(p.position[0])
