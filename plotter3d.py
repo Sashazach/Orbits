@@ -5,7 +5,11 @@ import time
 
 SCALE = 1e10
 PLANET_RADIUS_SCALE = 2000
-SUN_RADIUS_SCALE = 50
+DISTANCE_SCALE = 1.2  # Multiplier so planetary orbits are visually a bit further out
+RADIUS_EXPONENT = 0.4  # Compress planet-size differences (large planets shrink, small planets stay visible)
+SUN_RADIUS_SCALE = 80  # Sun appears slightly larger than before
+EARTH_RADIUS = 6.371e6  # Reference radius used for scaling planet sizes
+EARTH_RENDER_RADIUS = 1.0  # Desired rendered radius for Earth in scene units
 MIN_RADIUS = 0.2
 ZOOM_FACTOR = 1.2
 PAN_STEP = 0.1
@@ -23,16 +27,26 @@ class Planet3d:
         self.yPosition = self.yPositions[0]
         self.zPosition = self.zPositions[0]
 
-        scaled_radius = max(self.radius * PLANET_RADIUS_SCALE / SCALE, MIN_RADIUS)
-        self.mesh = pv.Sphere(radius=scaled_radius, center=(self.xPosition/SCALE, self.yPosition/SCALE, self.zPosition/SCALE))
+        # Scale the visual radius using an exponent to compress the dynamic range between small and large planets
+        scaled_radius = max(EARTH_RENDER_RADIUS * (self.radius / EARTH_RADIUS) ** RADIUS_EXPONENT, MIN_RADIUS)
+
+        # Apply distance scaling to position so that orbits look more spread out
+        self.mesh = pv.Sphere(
+            radius=scaled_radius,
+            center=(
+                self.xPosition * DISTANCE_SCALE / SCALE,
+                self.yPosition * DISTANCE_SCALE / SCALE,
+                self.zPosition * DISTANCE_SCALE / SCALE,
+            ),
+        )
 
     def get_position(self):
         return [self.xPosition, self.yPosition, self.zPosition]
 
     def set_position(self, xPosition: float, yPosition: float, zPosition: float):
-        dx = (xPosition - self.xPosition)/SCALE
-        dy = (yPosition - self.yPosition)/SCALE
-        dz = (zPosition - self.zPosition)/SCALE
+        dx = (xPosition - self.xPosition) * DISTANCE_SCALE / SCALE
+        dy = (yPosition - self.yPosition) * DISTANCE_SCALE / SCALE
+        dz = (zPosition - self.zPosition) * DISTANCE_SCALE / SCALE
         self.xPosition = xPosition
         self.yPosition = yPosition
         self.zPosition = zPosition
@@ -58,9 +72,13 @@ class System3d:
                     continue
                 n_points = min(200, len(planet.xPositions))
                 step = max(1, len(planet.xPositions) // n_points)
-                points = np.column_stack((np.array(planet.xPositions[::step]) / SCALE,
-                                           np.array(planet.yPositions[::step]) / SCALE,
-                                           np.array(planet.zPositions[::step]) / SCALE))
+                points = np.column_stack(
+                    (
+                        np.array(planet.xPositions[::step]) * DISTANCE_SCALE / SCALE,
+                        np.array(planet.yPositions[::step]) * DISTANCE_SCALE / SCALE,
+                        np.array(planet.zPositions[::step]) * DISTANCE_SCALE / SCALE,
+                    )
+                )
                 poly = pv.PolyData(points)
                 poly.lines = np.hstack([[points.shape[0]], np.arange(points.shape[0])])
                 self.plotter.add_mesh(poly, color=planet.color, line_width=1.5, opacity=0.6)
@@ -161,7 +179,7 @@ class System3d:
             all_positions.append(coords)
         if all_positions:
             points = np.vstack(all_positions)
-            max_extent = np.max(np.linalg.norm(points, axis=1)) / SCALE
+            max_extent = np.max(np.linalg.norm(points, axis=1)) * DISTANCE_SCALE / SCALE
             self.plotter.reset_camera(bounds=[-max_extent, max_extent,
                                               -max_extent, max_extent,
                                               -max_extent, max_extent])
