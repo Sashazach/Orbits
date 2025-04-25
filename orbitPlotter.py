@@ -138,8 +138,13 @@ def get_user_input2d():
 
 def simulate_orbits(system, show_trails=True, days=365, steps_per_day=24, sub_steps=2000):
 
+    #86400 seconds = 1 day, divided by steps per day gives time between frames
     dt = 86400 / steps_per_day  
+
+    #further divides animation time step for more accurate orbital calculations
     dt_calc = dt / sub_steps     
+
+    #balances performance and accuracy
     steps_per_frame = 5          
 
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -304,7 +309,7 @@ def main():
 
         system_sim = System(host=sun, planets=sim_planets)
 
-        days,steps_per_day,sub_steps = 100,96,10
+        days,steps_per_day,sub_steps = 250,96,10
         dt = 86400/steps_per_day; dt_calc = dt/sub_steps; frames = days*steps_per_day
         
         sample_rate = steps_per_day // 4

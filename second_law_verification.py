@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from models import Planet, System 
+import matplotlib.pyplot as plt
 
 # constants
 G = 6.67430e-11
@@ -59,11 +60,12 @@ if len(areas) > 1:
     std = np.std(areas)
     cv = (std / avg) * 100 if avg != 0 else float('inf')
 
-    print("\n--- Kepler’s Second Law ---")
+    print('\n')
+    print("Kepler's 2nd Law")
     print(f"Interval: {dt_sweep / 86400:.2f} days")
     print(f"Intervals: {len(areas)}")
     print(f"Avg area: {avg:.4e} m^2")
-    print(f"Std dev: {std:.4e}")
+    print(f"Standard dev: {std:.4e}")
     print(f"Variation: {cv:.2f}%")
     if cv < 1.0:
         print("Result: Kepler verified (constant areal sweep which is what the second law says).")
@@ -71,3 +73,25 @@ if len(areas) > 1:
         print("Result: Variation too high!")
 else:
     print("Something got messed up.")
+
+if len(areas) > 1:
+    equal_values = np.ones(len(areas))
+    colors = plt.cm.viridis(np.linspace(0, 1, len(areas)))
+
+    plt.figure(figsize=(8, 8))
+    wedges, texts = plt.pie(equal_values, colors=colors, startangle=90, counterclock=False)
+    plt.title(f"Kepler's Second Law Verification\nEqual Areas Swept in Equal Time Intervals ({dt_sweep/86400:.2f} days each)", pad=20)
+
+    center_circle = plt.Circle((0,0),0.70,fc='white')
+    fig = plt.gcf()
+    fig.gca().add_artist(center_circle)
+
+    plt.text(0, 0, f"{len(areas)}\nIntervals", ha='center', va='center', fontsize=12)
+
+    plt.text(0.5, -0.1, 
+             f"Average Area: {avg:.3e} m^2\nVariation: {cv:.2f}% - {'Verified' if cv < 1.0 else 'High Variation!'}", 
+             ha='center', va='center', transform=fig.transFigure)
+
+    plt.axis('equal')  
+    plt.tight_layout()
+    plt.show()

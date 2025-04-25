@@ -116,11 +116,7 @@ class System3d:
                     diffuse=0.9,
                 )
             else:
-                print("WARNING: No texture coordinates added to sun mesh")
                 self.plotter.add_mesh(self.sun_mesh, color="yellow")
-        else:
-            print("No texture found for sun, using default yellow color")
-            self.plotter.add_mesh(self.sun_mesh, color="yellow")
 
         self.renderedPlanets = []
         for p in self.planets:
